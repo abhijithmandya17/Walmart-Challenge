@@ -1,4 +1,5 @@
-#Call libraries used in the code
+#Call libraries used in the code. 
+#Respective packages will have to be installed using install.packages("name of package")
 library(tidyverse)
 library(anytime)
 library(sqldf)
@@ -101,10 +102,7 @@ ggplot(hour_bill_trend, aes(Hour,products)) + geom_line(aes(color=Day, group=Day
 #Sunday afternoon matches it's Saturday counterpart but only at noon otherwise it seems to fall off sharply.
 #I'd call this the death due to the Monday Morning Dread
 
-###################################
 #Lets see what sold on Saturday 4-7pm
-
-###################################
 
 peak <- data[walmart$Day == "Saturday" & walmart$Hour >= 16 & walmart$Hour < 19,]
 
@@ -151,12 +149,44 @@ fri_products <- sqldf("select department, description, count(description) as cou
 #The top 4 departments and top products remained unchanged
 
 ###########################
+#Sam's Club
+###########################
 
+#Subset data for store_number 3333
+sam <- data[data$store_number == 3333,]
+
+hour_bill_trend_sam <- sqldf("select Day, Hour, count(distinct order_id) as unique_bills, 
+                          sum(amount) as sales, count(upc) as products from sam group by 1,2")
+
+#The above summary contains Day-wise, hour-wise break up of the distinct bills cut, 
+#Total sales in that period and number of products sold
+
+#Atomize sales/hour to give a clear picture of the most productive hour across each day
+hour_bill_trend_sam$bill_value <- hour_bill_trend$sales/hour_bill_trend$unique_bills
+
+#Plot produced is a hour wise line chart each day in the data set
+ggplot(hour_bill_trend_sam, aes(Hour,sales)) + geom_line(aes(color=Day, group=Day), size=2)+geom_smooth()+
+  scale_x_continuous(breaks = seq(min(hour_bill_trend_sam$Hour), max(hour_bill_trend_sam$Hour)))
+
+#Data seems to be far more discontinous than the walmart(2222) data since it is a wholesale retail
+#Although Saturday sees the same peak like walmart, generally, 
+#most of the buying happens in the afternoon while walmart skewed towards early evening
+
+department_trend_sam <- sqldf("select department,sum(amount) as sales, 
+                          count(distinct order_id) as unique_bills from sam group by 1")
+
+sam_products <- sqldf("select department, description, count(description) as count, 
+                           sum(amount) as sales from peak group by 1,2")
+
+dept_56 <- sam[sam$department == 56,]
+#Sale of fruits and vegetables is a runaway No. 1 Dept at Sam's Club
+
+###########################
 #Investigating the register
 ###########################
 
 #Summarize by register to check performance
-registers <-group_by(walmart, register) %>% summarize(amount = sum(amount))
+registers <-group_by(data, register) %>% summarize(amount = sum(amount))
 
 #Revisit bad transactions data (amount <=0)
 bad_transactions$amount <- -(bad_transactions$amount)
@@ -169,13 +199,12 @@ register_perf$error_rate <- register_perf$deduction/register_perf$amount
 register_perf <- register_perf[order(register_perf$error_rate, decreasing = T),]
 head(register_perf[1:5,])
 
-# register amount deduction error_rate
-# 48       96  81.81     91.26  1.1155116
-# 3         4 259.52    211.04  0.8131936
-# 23       28  66.99     27.86  0.4158830
-# 16       17 274.54     99.88  0.3638086
-# 13       14 569.91    156.57  0.2747276
-
+# register  amount deduction error_rate
+# 54       96   81.81     91.26  1.1155116
+# 23       28   66.99     27.86  0.4158830
+# 16       17  274.54     99.88  0.3638086
+# 24       30  144.64     34.80  0.2405973
+# 42       74 2369.84    473.66  0.1998700
 
 summary(lm(register~amount, data =registers))
 #As expected there is no linear relationship between the number, thus placement and sales
@@ -185,7 +214,7 @@ summary(lm(register~amount, data =registers))
 ###########################
 
 #Create summary of order_id and product
-prod_id<-sqldf("select order_id as trans_id, description as prod_id from walmart group by 1,2")
+prod_id<-sqldf("select order_id as trans_id, description as prod_id from data group by 1,2")
 write.csv(prod_id, "prod_id.csv",row.names=FALSE)
 
 #Read it in as a transaction
@@ -207,4 +236,5 @@ plot(subrules2, method="graph")
 #Like Cherry and apple mini pie get bought together very often.
 #Usually, a month long cycle across multiple stores will produce a more robust model
 
+##########################
 
