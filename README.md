@@ -1,5 +1,5 @@
 # Walmart Challenge
-Data Challenge working with a weekend data set to find interesting insights.
+Data challenge to work with a weekend dataset and find interesting insights.
 
 ## Data
 The provided data was anonymized and contained transactions from 2 stores, namley Walmart and Sam's Club, from 20:00 July 21nd 2017 to 20:00 July 23rd 2017. Other variables were, UPC, amount, description of product, unique, order+upc+item id, name, department to which the product belonged to and register where it was billed.
