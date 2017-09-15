@@ -233,8 +233,9 @@ subrules2 <- head(sort(rules, by="lift"), 20)
 plot(subrules2, method="graph")
 
 #A strong visualization which provides a view of buying patterns. 
-#Like Cherry and apple mini pie get bought together very often.
+#Like Cherry and apple mini pie get bought together very often and have a high likely hood in the future
 #Usually, a month long cycle across multiple stores will produce a more robust model
+#But we can still see intutive associations in the top 20 rules.
 
 ##########################
 
