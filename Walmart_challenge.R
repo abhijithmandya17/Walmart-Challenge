@@ -5,6 +5,9 @@ library(sqldf)
 library(ggplot2)
 library(dplyr)
 library(reshape)
+library(arules)
+library(arulesViz)
+library(igraph)
 
 #Read tsv file, choose class as character to avoid loss of information in UPC, order_time and order_id variables
 data <- read.delim('4729-2038.tsv', colClasses = "character")
@@ -159,8 +162,26 @@ registers <-group_by(walmart, register) %>% summarize(amount = n())
 summary(lm(register~amount, data =registers))
 
 ###########################
-
 #Market Basket
 ###########################
 
+#Create summary of order_id and product
+prod_id<-sqldf("select order_id as trans_id, description as prod_id from walmart group by 1,2")
+write.csv(prod_id, "prod_id.csv",row.names=FALSE)
 
+#Read it in as a transaction
+WM = read.transactions("prod_id.csv", format = "single", sep = ",", cols = c(1,2))
+#apply apriori package with a support minima of 0.001, and confidence limit of 95%
+rules<-apriori(data=WM, parameter=list(supp=0.001,conf = 0.05,minlen=2,maxlen=2),control = list(verbose=F))
+#sort rules by highest confidence
+rules<-sort(rules, decreasing=TRUE,by="confidence")
+#inspect top 5 rules 
+inspect(rules[1:5])
+#convert rules to dataframe for ease of view
+final = as(rules, "data.frame")
+
+#create a set of subrules to be visualized and plot using the igraph library
+subrules2 <- head(sort(rules, by="lift"), 20)
+plot(subrules2, method="graph")
+
+#sel <- plot(rules, measure=c("support", "lift"), shading="confidence", interactive=TRUE)
