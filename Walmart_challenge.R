@@ -156,10 +156,29 @@ fri_products <- sqldf("select department, description, count(description) as cou
 ###########################
 
 #Summarize by register to check performance
-registers <-group_by(walmart, register) %>% summarize(amount = n())
+registers <-group_by(walmart, register) %>% summarize(amount = sum(amount))
 
-#As expected there is no linear relationship between the number, thus placement and sales
+#Revisit bad transactions data (amount <=0)
+bad_transactions$amount <- -(bad_transactions$amount)
+#summarize register performance
+bad_registers <-group_by(bad_transactions, register) %>% summarize(deduction = sum(amount))
+
+#merge data to find error rate among registers
+register_perf <- merge(registers, bad_registers, by = "register")
+register_perf$error_rate <- register_perf$deduction/register_perf$amount
+register_perf <- register_perf[order(register_perf$error_rate, decreasing = T),]
+head(register_perf[1:5,])
+
+# register amount deduction error_rate
+# 48       96  81.81     91.26  1.1155116
+# 3         4 259.52    211.04  0.8131936
+# 23       28  66.99     27.86  0.4158830
+# 16       17 274.54     99.88  0.3638086
+# 13       14 569.91    156.57  0.2747276
+
+
 summary(lm(register~amount, data =registers))
+#As expected there is no linear relationship between the number, thus placement and sales
 
 ###########################
 #Market Basket
@@ -184,4 +203,8 @@ final = as(rules, "data.frame")
 subrules2 <- head(sort(rules, by="lift"), 20)
 plot(subrules2, method="graph")
 
-#sel <- plot(rules, measure=c("support", "lift"), shading="confidence", interactive=TRUE)
+#A strong visualization which provides a view of buying patterns. 
+#Like Cherry and apple mini pie get bought together very often.
+#Usually, a month long cycle across multiple stores will produce a more robust model
+
+
